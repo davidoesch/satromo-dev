@@ -33,7 +33,10 @@ S3_DESTINATION_DEV = r'X:\\'
 
 # GITHUB
 GDRIVE_SOURCE_INT = "geedriveINT:"
-GDRIVE_MOUNT_INT = "localgdrive"
+# if using GDRIVE
+#GDRIVE_MOUNT_INT = "localgdrive"
+# if using GCS
+GDRIVE_MOUNT_INT = "localgdrive/satromo_export"
 S3_DESTINATION_INT = os.path.join("s3INT:satromoint", "data")
 
 
