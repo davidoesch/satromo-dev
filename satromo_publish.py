@@ -131,23 +131,26 @@ def initialize_gee_and_drive():
         else:
             # GCS Mount
             command = ["rclone", "mount", "--config", "rclone.conf",  # "--allow-other",
-                    os.path.join(GDRIVE_SOURCE), os.path.join(GDRIVE_MOUNT,config.GCLOUD_BUCKET), "--gcs-bucket-policy-only"]
+                    os.path.join(GDRIVE_SOURCE), os.path.join(GDRIVE_MOUNT), "--gcs-bucket-policy-only"]
+            # add path on Bucket to drive
+            GDRIVE_MOUNT=os.path.join(GDRIVE_MOUNT,config.GCLOUD_BUCKET)
         print(command)
         subprocess.Popen(command)
 
-    command = ["ls", os.path.join(GDRIVE_MOUNT,config.GCLOUD_BUCKET)]
-    print(command)
-    # Run the command and capture the output
-    result = subprocess.run(command, capture_output=True, text=True)
 
-    # Print the standard output
-    print("Command output:")
-    print(result.stdout)
+        command = ["ls", os.path.join(GDRIVE_MOUNT)]
+        print(command)
+        # Run the command and capture the output
+        result = subprocess.run(command, capture_output=True, text=True)
 
-    # Print the standard error (if any)
-    if result.stderr:
-        print("Error output:")
-        print(result.stderr)
+        # Print the standard output
+        print("Command output:")
+        print(result.stdout)
+
+        # Print the standard error (if any)
+        if result.stderr:
+            print("Error output:")
+            print(result.stderr)
 
     # Create the Google Drive client
     global drive
