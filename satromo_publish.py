@@ -137,7 +137,18 @@ def initialize_gee_and_drive():
 
     command = ["ls", os.path.join(GDRIVE_MOUNT,config.GCLOUD_BUCKET)]
     print(command)
-    subprocess.Popen(command)
+    # Run the command and capture the output
+    result = subprocess.run(command, capture_output=True, text=True)
+
+    # Print the standard output
+    print("Command output:")
+    print(result.stdout)
+
+    # Print the standard error (if any)
+    if result.stderr:
+        print("Error output:")
+        print(result.stderr)
+
     # Create the Google Drive client
     global drive
     drive = GoogleDrive(gauth)
