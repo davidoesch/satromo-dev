@@ -143,7 +143,7 @@ def initialize_gee_and_drive():
             print("Error:", line.strip())
 
         # Wait for the command to complete
-        process.wait()
+        #process.wait()
 
         command = ["ls", os.path.join(GDRIVE_MOUNT)]
         print(command)
