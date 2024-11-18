@@ -309,9 +309,9 @@ STAC_PRODUCT = ["S2_LEVEL_2A", "NDVI-MAX"]
 # under Windows, add \\ to escape the backslash like r'X:\\'
 STAC_DESTINATION_DEV = r'X:\\'
 
-GDRIVE_SOURCE_INT = "geedriveINT:"
-GDRIVE_MOUNT_INT = "localgdrive"
-STAC_DESTINATION_INT = "s3INT:satromoint"
+# GDRIVE_SOURCE_INT = "geedriveINT:"
+# GDRIVE_MOUNT_INT = "localgdrive"
+# STAC_DESTINATION_INT = "s3INT:satromoint"
 
 # STAC FSDI
 # ---------------
