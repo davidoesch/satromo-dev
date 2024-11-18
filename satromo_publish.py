@@ -135,8 +135,15 @@ def initialize_gee_and_drive():
             # add path on Bucket to drive
             #GDRIVE_MOUNT=os.path.join(GDRIVE_MOUNT,config.GCLOUD_BUCKET)
         print(command)
-        subprocess.Popen(command)
+        process = subprocess.Popen(command,stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        # Read output and errors in real-time
+        for line in process.stdout:
+            print("Output:", line.strip())
+        for line in process.stderr:
+            print("Error:", line.strip())
 
+        # Wait for the command to complete
+        process.wait()
 
         command = ["ls", os.path.join(GDRIVE_MOUNT)]
         print(command)
