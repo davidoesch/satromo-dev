@@ -111,11 +111,6 @@ def initialize_gee_and_drive():
         with open(rclone_config_file, "w") as f:
             f.write(rclone_config)
 
-        # Write rclone config to a file
-        rclone_config = os.environ.get('RCONF_SECRET')
-        rclone_config_file = "rclone.conf"
-        with open(rclone_config_file, "w") as f:
-            f.write(rclone_config)
 
         # Write GDRIVE Secrest config to a file
         google_secret = os.environ.get('GOOGLE_CLIENT_SECRET')
@@ -140,6 +135,9 @@ def initialize_gee_and_drive():
         print(command)
         subprocess.Popen(command)
 
+    command = ["ls", GDRIVE_MOUNT]
+    print(command)
+    subprocess.Popen(command)
     # Create the Google Drive client
     global drive
     drive = GoogleDrive(gauth)
