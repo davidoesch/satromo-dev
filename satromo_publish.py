@@ -130,7 +130,7 @@ def initialize_gee_and_drive():
                     os.path.join(GDRIVE_SOURCE), GDRIVE_MOUNT, "--vfs-cache-mode", "full"]
         else:
             # GCS Mount
-            command = ["rclone", "mount", "--config", "rclone.conf",  
+            command = ["rclone", "mount", "--config", "rclone.conf",
                     os.path.join(GDRIVE_SOURCE), os.path.join(GDRIVE_MOUNT), "--gcs-bucket-policy-only"]
             # add path on Bucket to drive
             #GDRIVE_MOUNT=os.path.join(GDRIVE_MOUNT,config.GCLOUD_BUCKET)
@@ -138,7 +138,7 @@ def initialize_gee_and_drive():
         subprocess.Popen(command)
 
 
-        command = ["ls", os.path.join(GDRIVE_MOUNT,config.GCLOUD_BUCKET)]
+        command = ["ls", os.path.join(GDRIVE_MOUNT)]
         print(command)
         # Run the command and capture the output
         result = subprocess.run(command, capture_output=True, text=True)
