@@ -36,7 +36,7 @@ GDRIVE_SOURCE_INT = "geedriveINT:"
 # if using GDRIVE
 #GDRIVE_MOUNT_INT = "localgdrive"
 # if using GCS
-GDRIVE_MOUNT_INT = os.path.join("localgdrive","satromo_export")
+GDRIVE_MOUNT_INT = "localgdrive"
 S3_DESTINATION_INT = os.path.join("s3INT:satromoint", "data")
 
 
