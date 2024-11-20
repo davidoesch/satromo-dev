@@ -517,7 +517,7 @@ def upload_asset(stac_asset_filename, stac_asset_url):
         multihash.encode(hashlib.sha256(data).digest(), 'sha2-256'))
     md5 = b64encode(hashlib.md5(data).digest()).decode('utf-8')
 
-    # 2. Create a multipart upload
+    # 2a. Create a multipart upload
     response = requests.post(
         stac_asset_url + "/uploads",
         auth=(user, password),
@@ -531,8 +531,14 @@ def upload_asset(stac_asset_filename, stac_asset_url):
         }
     )
     upload_id = response.json()['upload_id']
+    print("*!!!!!!!* 2a. Create a multipart upload POST")
+    if response.status_code != 200:
+        print(f"Unexpected status code: {response.status_code}")
+        print(response.json())
+    print(response.json())
+    print(" END *!!!!!!!* 2a. Create a multipart upload POST")
 
-    # 2. Upload the part using the presigned url
+    # 2b. Upload the part using the presigned url
     response = requests.put(
         response.json()['urls'][0]['url'], data=data, headers={'Content-MD5': md5})
     etag = response.headers['ETag']
@@ -552,7 +558,7 @@ def upload_asset(stac_asset_filename, stac_asset_url):
 
 def publish_to_stac(raw_asset, raw_item, collection, geocat_id, current=None):
     """
-    Publishes a STAC asset. 
+    Publishes a STAC asset.
 
     This function determines the run type, initializes FSDI authentication, checks if the STAC item exists and creates it if it doesn't, checks if the STAC asset exists and overwrites it if it does, and finally uploads the STAC asset.
 
