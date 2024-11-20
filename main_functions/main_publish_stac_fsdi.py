@@ -518,6 +518,10 @@ def upload_asset(stac_asset_filename, stac_asset_url):
     md5 = b64encode(hashlib.md5(data).digest()).decode('utf-8')
 
     # 2a. Create a multipart upload
+    ip_response = requests.get("https://api64.ipify.org?format=json")
+    ip_address = ip_response.json()["ip"]
+    print(f"my IP address is: {ip_address}")
+
     response = requests.post(
         stac_asset_url + "/uploads",
         auth=(user, password),
