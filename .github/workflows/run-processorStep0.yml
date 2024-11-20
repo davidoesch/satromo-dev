@@ -39,7 +39,7 @@ jobs:
         
     - name: Run Python script
       run: |
-        python satromo_processor.py dev_config.py 2024-11-09
+        python satromo_processor.py dev_config.py 2024-11-16
       env: # Set the secrets as env var
         GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
       
