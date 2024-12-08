@@ -70,6 +70,17 @@ jobs:
         RCONF_SECRET: ${{ secrets.RCONF_SECRET }}
         FSDI_STAC_USER: ${{ secrets.FSDI_STAC_USER}}
         FSDI_STAC_PASSWORD: ${{ secrets.FSDI_STAC_PASSWORD}}
+      
+    - name: Run Python script ACQUISTION
+      run: |
+        python main_functions/util_get_acquisition_plans.py
+
+    - name: Run Python script UPLOAD CMS
+      run: |
+        python main_functions/util_upload_acquisition_historic.py
+      env: # Set the secrets as env var
+        CMS_SECRET: ${{ secrets.CMS_SECRET }}
+        CMS_KEY: ${{ secrets.CMS_KEY }}
 
     #- name: Run Python script PUBLISH STAC
     #  run: |
