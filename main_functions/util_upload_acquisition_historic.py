@@ -66,7 +66,7 @@ def upload_file_to_s3(local_file_path, bucket_name, s3_folder=''):
 
     # Upload the file
     try:
-        
+
         response = s3.upload_file(local_file_path, bucket_name, s3_key)
         #print(f"File uploaded successfully to {s3_key}")
         return True
@@ -84,6 +84,7 @@ if __name__ == "__main__":
 
 
     # upload acquisitionplan.csv
+    #ACQUI_OK=upload_file_to_s3(os.path.join('tools','acquisitionplan.csv'), config.CMS_BUCKET, "tools/test/test3")
     ACQUI_OK=upload_file_to_s3(os.path.join('tools','acquisitionplan.csv'), config.CMS_BUCKET, "tools")
 
     # upload step0_empty_assets.csv
