@@ -38,46 +38,52 @@ regions = regions.rename(columns={'REGION_NR': 'Region_ID'})
 regions['Region_ID'] = regions['Region_ID'].astype(int)
 merged = regions.merge(data, on='Region_ID')
 
-# Generate yearly maps with a 12x4 layout
-for year in data['Year'].unique():
+# Get unique years and sort them
+years = sorted(data['Year'].unique())
+
+# Create a figure with one column for each year and 48 rows
+fig, axes = plt.subplots(nrows=48, ncols=len(years), figsize=(5 * len(years), 100))
+axes = axes.flatten()  # Flatten for easy indexing
+
+# Loop through each year and add maps
+for col, year in enumerate(years):
     yearly_data = merged[merged['Year'] == year]
 
-    # Create a figure with 12 rows and 4 columns
-    fig, axes = plt.subplots(nrows=12, ncols=4, figsize=(20, 30))
-    axes = axes.flatten()  # Flatten for easy indexing
-
-    # Loop through each month and add maps
     for month in range(1, 13):
         monthly_data = yearly_data[yearly_data['Month'] == month]
         dates_in_month = monthly_data['Datum'].dt.date.unique()
 
-        # Loop through dates in the month, up to 4
-        for col in range(4):
-            ax_idx = (month - 1) * 4 + col  # Calculate position in grid
+        for row in range(4):
+            ax_idx = col + len(years) * ((month - 1) * 4 + row)
             ax = axes[ax_idx]
 
-            if col < len(dates_in_month):
-                date = dates_in_month[col]
+            if row < len(dates_in_month):
+                date = dates_in_month[row]
                 date_data = monthly_data[monthly_data['Datum'].dt.date == date]
+
                 if not date_data.empty:
                     # Plot all regions with boundaries
-                    regions.boundary.plot(ax=ax, linewidth=1, edgecolor='black')
+                    regions.boundary.plot(ax=ax, linewidth=0.5, edgecolor='black')
                     # Plot regions with VHI data
-                    date_data.plot(ax=ax, color=date_data.apply(lambda row: '#ffffff' if row['Availability'] <= 20 else row['Color'], axis=1), edgecolor='black')
-                    ax.set_title(str(date), fontsize=8)  # Add date as title
+                    date_data.plot(
+                        ax=ax,
+                        color=date_data.apply(lambda row: '#ffffff' if row['Availability'] <= 20 else row['Color'], axis=1),
+                        edgecolor='black',
+                    )
+                    ax.set_title(f"{date}", fontsize=6)  # Add date as title
                 else:
-                    ax.axis('off')  # Hide empty cells
+                    ax.axis('off')  # Hide empty cells if no data available
             else:
                 ax.axis('off')  # Hide empty cells
 
             ax.axis('off')  # Remove axes for clean look
 
-    # Adjust spacing
-    plt.tight_layout()
-    plt.subplots_adjust(hspace=0.4)
+# Adjust spacing between plots
+plt.tight_layout()
+plt.subplots_adjust(hspace=0.5, wspace=0.3)
 
-    # Save the yearly figure
-    plt.savefig(f"{output_folder}/VHI_{year}.png", dpi=300)
-    plt.close()
-    breakpoint()
-    print(f"Saved VHI map for {year}")
+# Save the figure
+output_path = os.path.join(output_folder, f"VHI_all_years.png")
+plt.savefig(output_path, dpi=300)
+plt.close()
+print(f"Saved VHI map for all years at {output_path}")
