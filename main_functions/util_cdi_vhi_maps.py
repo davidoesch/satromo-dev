@@ -82,11 +82,13 @@ for col, year in enumerate(years):
             ax.axis('off')  # Remove axes for clean look
 
 # Adjust spacing between plots
-plt.tight_layout()
-plt.subplots_adjust(hspace=0.5, wspace=0.3)
+plt.tight_layout(pad=1.0, h_pad=1, w_pad=1)
+fig.suptitle("VHI weekly", fontsize=16)
 
 # Save the figure
 output_path = os.path.join(output_folder, f"VHI_all_years.png")
 plt.savefig(output_path, dpi=300)
 plt.close()
 print(f"Saved VHI map for all years at {output_path}")
+
+
