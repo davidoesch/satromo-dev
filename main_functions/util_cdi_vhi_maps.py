@@ -12,6 +12,9 @@ output_folder = r"C:\temp\output_vhi_maps"
 vhi_ranges = [(0, 9), (10, 19), (20, 29), (30, 39), (40, 49), (50, 59), (60, 100), (110, 110)]
 hex_colors = ['#b56a29', '#ce8540', '#f5cd85', '#fff5ba', '#cbffca', '#52bd9f', '#0470b0', '#b3b6b7']
 
+# THRESHOLD AVILABILITY
+threshold_availability = 20
+
 # Create output folder if it doesn't exist
 os.makedirs(output_folder, exist_ok=True)
 
@@ -67,7 +70,7 @@ for col, year in enumerate(years):
                     # Plot regions with VHI data
                     date_data.plot(
                         ax=ax,
-                        color=date_data.apply(lambda row: '#ffffff' if row['Availability'] <= 20 else row['Color'], axis=1),
+                        color=date_data.apply(lambda row: '#ffffff' if row['Availability'] <= threshold_availability else row['Color'], axis=1),
                         edgecolor='black',
                     )
                     ax.set_title(f"{date}", fontsize=6)  # Add date as title
