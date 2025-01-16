@@ -59,8 +59,14 @@ for year in data['Year'].unique():
             if col < len(dates_in_month):
                 date = dates_in_month[col]
                 date_data = monthly_data[monthly_data['Datum'].dt.date == date]
-                date_data.plot(ax=ax, color=date_data['Color'], edgecolor='black')
-                ax.set_title(str(date), fontsize=8)  # Add date as title
+                if not date_data.empty:
+                    # Plot all regions with boundaries
+                    regions.boundary.plot(ax=ax, linewidth=1, edgecolor='black')
+                    # Plot regions with VHI data
+                    date_data.plot(ax=ax, color=date_data.apply(lambda row: '#ffffff' if row['Availability'] <= 20 else row['Color'], axis=1), edgecolor='black')
+                    ax.set_title(str(date), fontsize=8)  # Add date as title
+                else:
+                    ax.axis('off')  # Hide empty cells
             else:
                 ax.axis('off')  # Hide empty cells
 
