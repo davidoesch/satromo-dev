@@ -134,16 +134,15 @@ class VHIMapGridGenerator:
             vhi = feature['properties'].get('vhi_mean')
             availability = feature['properties'].get('availability_percentage')
 
-            if vhi == 110 or availability < 20:
-                continue
-
             coordinates = feature['geometry']['coordinates']
-            color = self.get_color_for_vhi(vhi)
-
             pixel_coords = self.process_coordinates(coordinates)
 
             if len(pixel_coords) > 2:  # Need at least 3 points for a polygon
-                draw.polygon(pixel_coords, fill=color, outline=(0, 0, 0))
+                if vhi == 110 or availability < 20:
+                    draw.polygon(pixel_coords, outline=(0, 0, 0))  # Draw only the border
+                else:
+                    color = self.get_color_for_vhi(vhi)
+                    draw.polygon(pixel_coords, fill=color, outline=(0, 0, 0))
 
         return image
 
@@ -182,23 +181,23 @@ class VHIMapGridGenerator:
         except:
             font = ImageFont.load_default()
 
-        # Add VHI legend
-        y_offset = 10
-        draw.text((10, y_offset - 10), "VHI Values:", fill='black', font=font)
-        for (min_val, max_val), color in self.vhi_colors.items():
-            rgb_color = self.hex_to_rgb(color)
-            draw.rectangle([10, y_offset, 30, y_offset + 10], fill=rgb_color, outline='black')
-            draw.text((40, y_offset), f"VHI {min_val}-{max_val}", fill='black', font=font)
-            y_offset += 15
+        # # Add VHI legend
+        # y_offset = 10
+        # draw.text((10, y_offset - 10), "VHI Values:", fill='black', font=font)
+        # for (min_val, max_val), color in self.vhi_colors.items():
+        #     rgb_color = self.hex_to_rgb(color)
+        #     draw.rectangle([10, y_offset, 30, y_offset + 10], fill=rgb_color, outline='black')
+        #     draw.text((40, y_offset), f"VHI {min_val}-{max_val}", fill='black', font=font)
+        #     y_offset += 15
 
-        # Add year labels at the bottom
-        y_offset += 10
-        draw.text((10, y_offset), "Years (columns):", fill='black', font=font)
-        years_text = ", ".join(str(year) for year in self.years)
-        draw.text((10, y_offset + 15), years_text, fill='black', font=font)
+        # # Add year labels at the bottom
+        # y_offset += 10
+        # draw.text((10, y_offset), "Years (columns):", fill='black', font=font)
+        # years_text = ", ".join(str(year) for year in self.years)
+        # draw.text((10, y_offset + 15), years_text, fill='black', font=font)
 
-        # Paste legend in top-right corner
-        image.paste(legend, (image.width - legend_width - 10, 10))
+        # # Paste legend in top-right corner
+        # image.paste(legend, (image.width - legend_width - 10, 10))
 
     def run(self):
         """Main execution method."""
@@ -231,6 +230,11 @@ class VHIMapGridGenerator:
 
         self.logger.info("Adding legend...")
         self.add_legend(grid_image)
+
+        # Make the row 25% wider
+        width, height = grid_image.size
+        new_width = int(width * 1.8)
+        grid_image = grid_image.resize((new_width, height))
 
         # Save output
         output_filename = f"vhi_map_grid_august_polygons_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
