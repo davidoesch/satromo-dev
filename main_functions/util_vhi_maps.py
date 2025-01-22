@@ -1,3 +1,29 @@
+"""
+VHI Map Grid Generator
+
+This script generates grid images of Vegetation Health Index (VHI) maps for each month and year
+within a specified range. The maps are fetched from a remote server, processed, and saved as images.
+
+Author: David Oesch
+Date: Jan 2025
+
+
+Usage:
+    python util_vhi_maps.py
+    change in code the
+    VHI_TYPE = "vegetation" or "forest"
+
+Dependencies:
+    - requests
+    - numpy
+    - PIL (Pillow)
+    - concurrent.futures
+    - tqdm
+    - logging
+    - json
+    - calendar
+"""
+
 import requests
 import numpy as np
 from datetime import datetime, timedelta
@@ -8,6 +34,8 @@ from tqdm import tqdm
 import logging
 import json
 import calendar
+
+
 
 class VHIMapGridGenerator:
     def __init__(self):
@@ -179,7 +207,7 @@ class VHIMapGridGenerator:
         draw.text((10, total_height - self.map_size[1] + 10), f"{VHI_TYPE}", fill='black', font=font)
 
         # Add the name of the python program at the footer
-        draw.text((10, total_height - self.map_size[1] - 20), f"util_vhi_maps.py", fill='black', font=font, anchor="ls", size=8)
+        draw.text((10, total_height - 20), f"util_vhi_maps.py", fill='black', font=font)
 
         # Add month label at the top
         draw.text((10, 10), f"{datetime(1900, month, 1).strftime('%B')}", fill='black', font=font)
@@ -239,5 +267,5 @@ class VHIMapGridGenerator:
 if __name__ == "__main__":
     generator = VHIMapGridGenerator()
     global VHI_TYPE
-    VHI_TYPE = "forest"
+    VHI_TYPE = "vegetation"
     generator.run()
