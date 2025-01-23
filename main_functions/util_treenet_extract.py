@@ -9,6 +9,7 @@ from shapely.geometry import Point
 import pandas as pd
 import os
 from datetime import datetime
+from tqdm import tqdm
 
 def check_mask(lon, lat, DATETIME):
     # Search for items
@@ -19,12 +20,23 @@ def check_mask(lon, lat, DATETIME):
     )
 
     items = list(search.items())
-    print(f"Found S2_SR {len(items)} item")
+    if len(items) == 0:
+        mask_value = 120
+        print(f"Found no S2-SR for {DATETIME}")
+        return mask_value
+
 
     # Checking now if no mask is aplied
     # Get the URL for the MASKS-10M asset
     masks_10m_key = next(key for key in items[0].assets.keys() if key.endswith('_masks-10m.tif'))
     masks_10m_url = items[0].assets[masks_10m_key].href
+
+    #create x and y in EPSG:2056
+    crs = CRS.from_epsg(4326)
+    crs_lv95 = CRS.from_epsg(2056)
+
+    transformer = Transformer.from_crs(crs, crs_lv95, always_xy=True)
+    x, y = transformer.transform(lon, lat)
 
     # Read the bands
     with rasterio.open(masks_10m_url) as src:
@@ -47,12 +59,24 @@ def check_vhi(lon, lat, DATETIME):
     )
 
     items = list(search.items())
-    print(f"Found VHI {len(items)} item")
+
+    if len(items) == 0:
+        vhi_value = 120
+        print(f"Found no VHI for {DATETIME}")
+        return vhi_value
+
 
     # Checking now if no mask is aplied
     # Get the URL for the BANDS-10M asset
     bands_10m_key = next(key for key in items[0].assets.keys() if key.endswith('_forest-10m.tif'))
     bands_10m_url = items[0].assets[bands_10m_key].href
+
+        #create x and y in EPSG:2056
+    crs = CRS.from_epsg(4326)
+    crs_lv95 = CRS.from_epsg(2056)
+
+    transformer = Transformer.from_crs(crs, crs_lv95, always_xy=True)
+    x, y = transformer.transform(lon, lat)
 
     # Read the bands
     with rasterio.open(bands_10m_url) as src:
@@ -67,47 +91,44 @@ def check_vhi(lon, lat, DATETIME):
     return vhi_value
 
 def process_csv(input_file, output_file):
-    # Use raw string or forward slashes to handle Windows paths
+    # Normalize paths
     input_file = os.path.normpath(input_file)
     output_file = os.path.normpath(output_file)
 
-    # Add encoding and error handling
+    # Read CSV with encoding handling
     try:
         df = pd.read_csv(input_file, encoding='utf-8', low_memory=False)
     except UnicodeDecodeError:
-        # Try alternative encodings if needed
         df = pd.read_csv(input_file, encoding='latin-1', low_memory=False)
 
-    # Rest of the processing remains the same
+    # Create DATETIME column
     df['DATETIME'] = pd.to_datetime(df['year'].astype(str) + '-' + df['doy'].astype(str).str.zfill(3), format='%Y-%j')
     df['DATETIME'] = df['DATETIME'].dt.strftime('%Y-%m-%d')
 
-    # Add new columns for swissEOVHI and swissEOMASK
-    df['swissEOVHI'] = df.apply(lambda row: check_vhi(row['tree_xcor'], row['tree_ycor'], row['DATETIME']), axis=1)
-    df['swissEOMASK'] = df.apply(lambda row: check_mask(row['tree_xcor'], row['tree_ycor'], row['DATETIME']), axis=1)
+    # Add progress bar to column additions
+    tqdm.pandas(desc="Processing data")
 
+    # Add new columns with progress tracking
+    df['swissEOVHI'] = df.progress_apply(lambda row: check_vhi(row['tree_xcor'], row['tree_ycor'], row['DATETIME']), axis=1)
+    df['swissEOMASK'] = df.progress_apply(lambda row: check_mask(row['tree_xcor'], row['tree_ycor'], row['DATETIME']), axis=1)
 
     # Ensure output directory exists
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
 
+    # Save processed CSV
     df.to_csv(output_file, index=False)
     print(f"Processed CSV saved to {output_file}")
 
 #add here the main section
 if __name__ == "__main__":
     #define datetime="2021-08-01/2024-08-31"
-    DATETIME = "2017-06-19/2017-06-19"
+    # DATETIME = "2017-06-19/2017-06-19"
 
-    # Define the coordinate in EPSG:4326
-    lon=7.57992972
-    lat=46.29625921
+    # # Define the coordinate in EPSG:4326
+    # lon=7.57992972
+    # lat=46.29625921
 
-    #create x and y in EPSG:2056
-    crs = CRS.from_epsg(4326)
-    crs_lv95 = CRS.from_epsg(2056)
 
-    transformer = Transformer.from_crs(crs, crs_lv95, always_xy=True)
-    x, y = transformer.transform(lon, lat)
 
 
     # Connect to the STAC API
@@ -119,7 +140,11 @@ if __name__ == "__main__":
     #for collection in catalog.get_collections():
     #    print(collection.id)
 
-    process_csv(r'C:\temp\BAFU_TreeNet_Signals_2017_2024\TN_2020.csv', r'C:\temp\satromo-dev\output\TN_2020_swisseo.csv')
+# Process years 2017-2024
+for year in range(2017, 2024):
+    input_file = fr'C:\temp\BAFU_TreeNet_Signals_2017_2024\TN_{year}.csv'
+    output_file = fr'C:\temp\satromo-dev\output\TN_{year}_swisseo.csv'
+    process_csv(input_file, output_file)
 
 
 
