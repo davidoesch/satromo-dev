@@ -10,7 +10,28 @@ import pandas as pd
 import os
 from datetime import datetime
 from tqdm import tqdm
+import time
+import logging
+from functools import wraps
 
+def retry_on_api_error(max_retries=3, delay=10):
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            retries = 0
+            while retries < max_retries:
+                try:
+                    return func(*args, **kwargs)
+                except pystac_client.exceptions.APIError as e:
+                    retries += 1
+                    logging.warning(f"API Error (Attempt {retries}/{max_retries}): {str(e)}")
+                    if retries == max_retries:
+                        raise
+                    time.sleep(delay)
+        return wrapper
+    return decorator
+
+@retry_on_api_error(max_retries=20, delay=10)
 def check_mask(lon, lat, DATETIME):
     # Search for items
     search = catalog.search(
@@ -22,7 +43,7 @@ def check_mask(lon, lat, DATETIME):
     items = list(search.items())
     if len(items) == 0:
         mask_value = 120
-        print(f"Found no S2-SR for {DATETIME}")
+        print(f" Found no S2-SR for {DATETIME}")
         return mask_value
 
 
@@ -46,10 +67,11 @@ def check_mask(lon, lat, DATETIME):
         # Read the pixel values at mask 2, if 0, no mask is applied
         #
         mask_value = src.read(2, window=((py, py+1), (px, px+1)))[0, 0]
-        print(f"Mask value: {mask_value}")
+        print(f" Mask value: {mask_value}")
 
     return mask_value
 
+@retry_on_api_error(max_retries=20, delay=10)
 def check_vhi(lon, lat, DATETIME):
     # Search for items
     search = catalog.search(
@@ -62,7 +84,7 @@ def check_vhi(lon, lat, DATETIME):
 
     if len(items) == 0:
         vhi_value = 120
-        print(f"Found no VHI for {DATETIME}")
+        print(f" Found no VHI for {DATETIME}")
         return vhi_value
 
 
