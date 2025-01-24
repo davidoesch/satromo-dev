@@ -35,6 +35,21 @@ import logging
 from functools import wraps
 
 def retry_on_api_error(max_retries=3, delay=10):
+    """
+    A decorator that retries a function call when an APIError is encountered.
+
+    Parameters:
+    max_retries (int): The maximum number of retry attempts. Default is 3.
+    delay (int): The delay in seconds between retry attempts. Default is 10.
+
+    Returns:
+    function: The wrapped function with retry logic.
+
+    Usage:
+    @retry_on_api_error(max_retries=5, delay=5)
+    def my_function():
+        # function implementation
+    """
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
