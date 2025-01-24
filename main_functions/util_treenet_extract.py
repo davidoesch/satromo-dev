@@ -1,3 +1,23 @@
+"""
+TreeNet VHI Extractor
+
+This script processes CSV files containing tree coordinates and extracts Vegetation Health Index (VHI) values
+for each tree location from remote sensing data. The extracted VHI values are then added to the CSV file.
+
+Author: David Oesch
+Date: Jan 2025
+
+
+Usage:
+    python util_treenet_extract.py , change the path to the input and output files in the main section
+
+Dependencies:
+    - pandas
+    - rasterio
+    - tqdm
+    - pyproj
+    - os
+"""
 import pystac_client
 import rasterio
 import geopandas as gpd
@@ -43,7 +63,7 @@ def check_mask(lon, lat, DATETIME):
     items = list(search.items())
     if len(items) == 0:
         mask_value = 120
-        print(f" Found no S2-SR for {DATETIME}")
+        #print(f" Found no S2-SR for {DATETIME}")
         return mask_value
 
 
@@ -67,7 +87,7 @@ def check_mask(lon, lat, DATETIME):
         # Read the pixel values at mask 2, if 0, no mask is applied
         #
         mask_value = src.read(2, window=((py, py+1), (px, px+1)))[0, 0]
-        print(f" Mask value: {mask_value}")
+        #print(f" Mask value: {mask_value}")
 
     return mask_value
 
@@ -84,7 +104,7 @@ def check_vhi(lon, lat, DATETIME):
 
     if len(items) == 0:
         vhi_value = 120
-        print(f" Found no VHI for {DATETIME}")
+        #print(f" Found no VHI for {DATETIME}")
         return vhi_value
 
 
@@ -108,7 +128,7 @@ def check_vhi(lon, lat, DATETIME):
         # Read the pixel values
         #
         vhi_value = src.read(1, window=((py, py+1), (px, px+1)))[0, 0]
-        print(f"VHI value: {vhi_value}")
+        #print(f"VHI value: {vhi_value}")
 
     return vhi_value
 
@@ -128,7 +148,7 @@ def process_csv(input_file, output_file):
     df['DATETIME'] = df['DATETIME'].dt.strftime('%Y-%m-%d')
 
     # Add progress bar to column additions
-    tqdm.pandas(desc="Processing data")
+    tqdm.pandas(desc="Processing data: "+input_file)
 
     # Add new columns with progress tracking
     df['swissEOVHI'] = df.progress_apply(lambda row: check_vhi(row['tree_xcor'], row['tree_ycor'], row['DATETIME']), axis=1)
