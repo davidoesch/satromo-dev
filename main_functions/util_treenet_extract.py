@@ -153,7 +153,7 @@ if __name__ == "__main__":
     for year in range(2018, 2024):
         input_file = fr'C:\temp\BAFU_TreeNet_Signals_2017_2024\TN_{year}.csv'
         output_file = fr'C:\temp\satromo-dev\output\TN_{year}_swisseo.csv'
-        process_csv(input_file, output_file)
+        process_csv(input_file, output_file, extractor)
 
     # # Process specific year
     # year = "2022_test"
