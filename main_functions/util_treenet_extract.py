@@ -33,6 +33,14 @@ from tqdm import tqdm
 import time
 import logging
 from functools import wraps
+import requests
+
+def construct_url(datetime_str):
+    base_url = "https://data.geo.admin.ch/ch.swisstopo.swisseo_vhi_v100/"
+    timestamp = f"{datetime_str}t235959"
+    file_name = f"ch.swisstopo.swisseo_vhi_v100_mosaic_{timestamp}_forest-10m.tif"
+    full_url = f"{base_url}{timestamp}/{file_name}"
+    return full_url
 
 def retry_on_api_error(max_retries=3, delay=10):
     """
@@ -108,44 +116,42 @@ def check_mask(lon, lat, DATETIME):
 
 @retry_on_api_error(max_retries=20, delay=10)
 def check_vhi(lon, lat, DATETIME):
-    # Search for items
-    search = catalog.search(
-        collections=["ch.swisstopo.swisseo_vhi_v100"],
-        intersects={"type": "Point", "coordinates": [lon, lat]},
-        datetime=DATETIME
-    )
 
-    items = list(search.items())
+    #get the url for the VHI file
+    url = construct_url(DATETIME)
 
-    if len(items) == 0:
+    response = requests.head(url, timeout=10)
+
+    if response.status_code == 200:
+
+        bands_10m_url= url
+
+        #create x and y in EPSG:2056
+        crs = CRS.from_epsg(4326)
+        crs_lv95 = CRS.from_epsg(2056)
+
+        transformer = Transformer.from_crs(crs, crs_lv95, always_xy=True)
+        x, y = transformer.transform(lon, lat)
+
+        # Read the bands
+        with rasterio.open(bands_10m_url) as src:
+            # Get pixel coordinates
+            py, px = src.index(x, y)
+
+            # Read the pixel values
+            #
+            vhi_value = src.read(1, window=((py, py+1), (px, px+1)))[0, 0]
+            #print(f"VHI value: {vhi_value}")
+
+        return vhi_value
+
+    else :
+        print(f"no VHI for {DATETIME}: {response.status_code}")
         vhi_value = 120
-        #print(f" Found no VHI for {DATETIME}")
         return vhi_value
 
 
-    # Checking now if no mask is aplied
-    # Get the URL for the BANDS-10M asset
-    bands_10m_key = next(key for key in items[0].assets.keys() if key.endswith('_forest-10m.tif'))
-    bands_10m_url = items[0].assets[bands_10m_key].href
 
-        #create x and y in EPSG:2056
-    crs = CRS.from_epsg(4326)
-    crs_lv95 = CRS.from_epsg(2056)
-
-    transformer = Transformer.from_crs(crs, crs_lv95, always_xy=True)
-    x, y = transformer.transform(lon, lat)
-
-    # Read the bands
-    with rasterio.open(bands_10m_url) as src:
-        # Get pixel coordinates
-        py, px = src.index(x, y)
-
-        # Read the pixel values
-        #
-        vhi_value = src.read(1, window=((py, py+1), (px, px+1)))[0, 0]
-        #print(f"VHI value: {vhi_value}")
-
-    return vhi_value
 
 def process_csv(input_file, output_file):
     # Normalize paths
@@ -198,12 +204,13 @@ if __name__ == "__main__":
     #    print(collection.id)
 
 # Process years 2017-2024
-for year in range(2017, 2024):
-    input_file = fr'C:\temp\BAFU_TreeNet_Signals_2017_2024\TN_{year}.csv'
-    output_file = fr'C:\temp\satromo-dev\output\TN_{year}_swisseo.csv'
-    process_csv(input_file, output_file)
+# for year in range(2017, 2024):
+#     input_file = fr'C:\temp\BAFU_TreeNet_Signals_2017_2024\TN_{year}.csv'
+#     output_file = fr'C:\temp\satromo-dev\output\TN_{year}_swisseo.csv'
+#     process_csv(input_file, output_file)
 
 
-
-
-
+year="2022_test"
+input_file = fr'C:\temp\BAFU_TreeNet_Signals_2017_2024\TN_{year}.csv'
+output_file = fr'C:\temp\satromo-dev\output\TN_{year}_swisseo.csv'
+process_csv(input_file, output_file)
