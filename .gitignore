@@ -167,3 +167,10 @@ secrets/
 results/
 rclone/
 main_functions/Anzahl_Wohnungen_bei_Ladestationen.ipynb
+output/TN_2018_swisseo.csv
+output/TN_2019_swisseo.csv
+output/TN_2020_swisseo.csv
+output/TN_2021_swisseo.csv
+output/TN_2022_swisseo.csv
+output/TN_2023_swisseo.csv
+output.csv
