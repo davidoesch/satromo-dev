@@ -2,7 +2,7 @@ name: Run publisher
 
 on:
   schedule:
-  - cron:  '0 5 * * *'
+  - cron:  '0 3 * * *'
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
   
@@ -38,10 +38,10 @@ jobs:
       run: |
         git config --global http.postBuffer 1048576000
     
-    - name: Set up Python 3.9
+    - name: Set up Python 3.11.1
       uses: actions/setup-python@v5
       with:
-        python-version: 3.9
+        python-version: 3.11.1
     
     - name: Install dependencies
       run: |
@@ -64,23 +64,21 @@ jobs:
     
     - name: Run Python script PUBLISH
       run: |
-        python satromo_publish.py dev_config.py
+        python satromo_publish.py oed_prod_config.py
       env: # Set the secrets as env var
         GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
         RCONF_SECRET: ${{ secrets.RCONF_SECRET }}
         FSDI_STAC_USER: ${{ secrets.FSDI_STAC_USER}}
         FSDI_STAC_PASSWORD: ${{ secrets.FSDI_STAC_PASSWORD}}
-      
-    - name: Run Python script ACQUISTION
-      run: |
-        python main_functions/util_get_acquisition_plans.py
 
-    - name: Run Python script UPLOAD CMS
-      run: |
-        python main_functions/util_upload_acquisition_historic.py
-      env: # Set the secrets as env var
-        CMS_SECRET: ${{ secrets.CMS_SECRET }}
-        CMS_KEY: ${{ secrets.CMS_KEY }}
+    #- name: Run Python script acquisition, extract vhi items and upload to s3
+    #  run: |
+    #    python main_functions/util_get_acquisition_plans.py
+    #    python main_functions/util_extract_items.py oed_prod_config.py
+    #    python main_functions/util_upload_s3.py oed_prod_config.py
+    #  env: # Set the secrets as env var
+    #    CMS_KEY: ${{ secrets.CMS_KEY }}
+    #    CMS_SECRET: ${{ secrets.CMS_SECRET }}
 
     #- name: Run Python script PUBLISH STAC
     #  run: |
@@ -115,6 +113,3 @@ jobs:
     #    AWS_REGION: "eu-central-2"
     #    AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
     #    AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }} 
-
- 
-        
