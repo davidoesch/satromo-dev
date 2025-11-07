@@ -92,6 +92,7 @@ PRODUCT_S2_LEVEL_2A = {
     "temporal_coverage": 1,  # Days
     "spatial_scale_export": 10,  # Meters # TODO: check if needed in context with step0
     "asset_size": 5,
+    "scaling_factor": 1,
     "spatial_scale_export_mask": 10,
     "product_name": "ch.swisstopo.swisseo_s2-sr_v100",
     "no_data": 9999,
@@ -109,6 +110,7 @@ PRODUCT_VHI = {
     "no_data": 255,
     "missing_data": 110,
     "asset_size": 2,
+    "scaling_factor": 1,
     'NDVI_reference_data': 'projects/satromo-prod/assets/col/1991-2020_NDVI_SWISS',
     'LST_reference_data': 'projects/satromo-prod/assets/col/1991-2020_LST_SWISS',
     'LST_current_data': 'projects/satromo-prod/assets/col/LST_SWISS',
