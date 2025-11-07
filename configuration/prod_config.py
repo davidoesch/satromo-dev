@@ -12,6 +12,7 @@ GITHUB_REPO = "topo-satromo"
 GDRIVE_SECRETS = os.path.join("secrets", "geetest-credentials-int.secret")
 RCLONE_SECRETS = os.path.join("secrets", "rclone.conf")
 FSDI_SECRETS = os.path.join("secrets", "stac_fsdi-prod.json")
+CMS_SECRETS = os.path.join("secrets", "PROD_CMS.json")
 
 # File and directory paths
 GEE_RUNNING_TASKS = os.path.join("processing", "running_tasks.csv")
@@ -20,7 +21,7 @@ EMPTY_ASSET_LIST = os.path.join("tools", "step0_empty_assets.csv")
 PROCESSING_DIR = "processing"
 LAST_PRODUCT_UPDATES = os.path.join("tools", "last_updates.csv")
 # Set GDRIVE Type: GCS for Google Cloud Storage and DRIVE for Google Drive
-GDRIVE_TYPE = "DRIVE"
+GDRIVE_TYPE = "GCS"
 # Set GCS Bucket name of Google Cloud Storage
 GCLOUD_BUCKET = "satromo_export"
 # Local Machine
@@ -32,10 +33,15 @@ GDRIVE_MOUNT_DEV = r'G:\\'
 S3_DESTINATION_DEV = r'X:\\'
 
 #  GITHUB
-GDRIVE_SOURCE_INT = "geedrivePROD:"
+# if using GDRIVE
+#GDRIVE_SOURCE_INT = "geedrivePROD:"
+# if using GCS
+GDRIVE_SOURCE_INT = "gcsPROD:"
 GDRIVE_MOUNT_INT = "localgdrive"
 S3_DESTINATION_INT = os.path.join("s3INT:satromoint", "data")
 
+# CMS to store tools files
+CMS_BUCKET = "cms.geo.admin.ch"
 
 # General GEE parameters
 
@@ -110,6 +116,39 @@ PRODUCT_VHI = {
     "step0_collection": "projects/satromo-prod/assets/col/S2_SR_HARMONIZED_SWISS"
 }
 
+# NDVI z-score (vitality anomaly)
+PRODUCT_NDVIz = {
+    # TODO: check if needed in context with step0
+    "image_collection": "COPERNICUS/S2_SR_HARMONIZED",
+    "geocat_id": "07f332fb-f728-4120-b6f1-488631555296",
+    "temporal_coverage": 2,  # Months
+    "spatial_scale_export": 10,  # Meters
+    "product_name": "swisseo_ndvi_z_v100",
+    "no_data": 32701,
+    "missing_data": 32700,
+    "asset_size": 1,
+    "scaling_factor": 100,
+    'NDVI_reference_data': 'projects/satromo-prod/assets/col/1991-2020_NDVI_SWISS_MM',
+    "step1_collection": 'projects/satromo-prod/assets/col/NDVIz_SWISS',
+    # "step0_collection": 'projects/satromo-prod/assets/col/S2_SR_HARMONIZED_SWISS'
+}
+
+# NDVI difference (yearly change)
+PRODUCT_NDVIdiff = {
+    # TODO: check if needed in context with step0
+    "image_collection": "COPERNICUS/S2_SR_HARMONIZED",
+    "geocat_id": "b144c4ba-971b-4e17-b809-47ee38ecfa26",
+    "temporal_coverage": 2,  # Months
+    "spatial_scale_export": 10,  # Meters
+    "product_name": "swisseo_ndvi_diff_v100",
+    "no_data": 32701,
+    "missing_data": 32700,
+    "asset_size": 1,
+    "scaling_factor": 1000,
+    "step1_collection": 'projects/satromo-prod/assets/col/NDVIdiff_SWISS',
+    # "step0_collection": 'projects/satromo-prod/assets/col/S2_SR_HARMONIZED_SWISS'
+}
+
 # MSG – MeteoSchweiz: only used for repreocessing
 PRODUCT_MSG_CLIMA = {
     #
@@ -160,9 +199,6 @@ STAC_PRODUCT = ["S2_LEVEL_2A", "NDVI-MAX"]
 # under Windows, add \\ to escape the backslash like r'X:\\'
 STAC_DESTINATION_DEV = r'X:\\'
 
-GDRIVE_SOURCE_INT = "geedrivePROD:"
-GDRIVE_MOUNT_INT = "localgdrive"
-STAC_DESTINATION_INT = "s3INT:satromoint"
 
 # STAC FSDI Production
 # ---------------

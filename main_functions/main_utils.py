@@ -1,11 +1,12 @@
 import configuration as config
 import requests
 import ee
-import datetime
+from datetime import datetime, timedelta
 import csv
 import os
 import json
 import pandas as pd
+import dateutil
 
 
 def is_date_in_empty_asset_list(collection, check_date_str):
@@ -31,7 +32,7 @@ def is_date_in_empty_asset_list(collection, check_date_str):
 
         # Check if any rows match the criteria
         if len(df_selection) > 0:
-            print(check_date_str+' is in empty_asset_list for '+collection)
+            # print(check_date_str+' is in empty_asset_list for '+collection)
             return True
         else:
             return False
@@ -40,6 +41,89 @@ def is_date_in_empty_asset_list(collection, check_date_str):
         print(f"Error checking empty asset list: {e}")
         return False  # Return False in case of any error to allow further processing
 
+def check_collection_data_availability(collection_name, start_date, end_date, band_list=None):
+    """
+    Check if required assets or empty asset list entries exist for each day 
+    in the specified date range.
+    
+    Args:
+        collection_name (str): Path to the Earth Engine collection
+        start_date (str): Start date in 'YYYY-MM-DD' format
+        end_date (str): End date in 'YYYY-MM-DD' format
+        band_list (list, optional): List of band suffixes to check for each date.
+                                   If None, only checks for any asset on each date.
+                                   Example: ['bands-10m', 'bands-20m']
+    
+    Returns:
+        tuple: (bool, list) - (all_dates_covered, missing_dates)
+    """
+    
+    # Convert string dates to datetime objects
+    start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+    end_dt = datetime.strptime(end_date, '%Y-%m-%d')
+    
+    # Generate list of all dates in the range
+    date_list = []
+    current_date = start_dt
+    while current_date <= end_dt:
+        date_list.append(current_date.strftime('%Y-%m-%d'))
+        current_date += timedelta(days=1)
+    
+    # Get the collection
+    collection = ee.ImageCollection('projects/satromo-prod/assets/col/' + collection_name)
+    
+    # Get all asset IDs in the collection
+    asset_ids = collection.aggregate_array('system:id').getInfo()
+    
+    missing_dates = []
+    
+    for date_str in date_list:
+        # Check if date is in empty asset list
+        if is_date_in_empty_asset_list(collection_name, date_str):
+            # print(f"Date {date_str}: Found in empty asset list")
+            continue
+        
+        # If no band_list specified, just check for any asset on this date
+        if band_list is None:
+            has_any_asset = False
+            for asset_id in asset_ids:
+                asset_name = asset_id.split('/')[-1]
+                if date_str in asset_name:
+                    has_any_asset = True
+                    break
+            
+            if has_any_asset:
+                # print(f"Date {date_str}: Asset available")
+                continue
+            else:
+                # print(f"Date {date_str}: No assets found - MISSING")
+                missing_dates.append(date_str)
+        else:
+            # Check for all required band types
+            found_bands = {band: False for band in band_list}
+            
+            for asset_id in asset_ids:
+                asset_name = asset_id.split('/')[-1]
+                
+                # Check if this asset belongs to the current date
+                if date_str in asset_name:
+                    for band in band_list:
+                        if band in asset_name:
+                            found_bands[band] = True
+            
+            # Check if all required bands are available
+            missing_bands = [band for band, found in found_bands.items() if not found]
+            
+            if not missing_bands:
+                # print(f"Date {date_str}: All required bands available {list(band_list)}")
+                continue
+            else:
+                available_bands = [band for band, found in found_bands.items() if found]
+                # print(f"Date {date_str}: Missing bands {missing_bands}, available bands {available_bands}")
+                missing_dates.append(date_str)
+    
+    all_dates_covered = len(missing_dates) == 0
+    return all_dates_covered, missing_dates
 
 def get_github_info():
     """
@@ -86,15 +170,15 @@ def get_github_info():
 
 def get_product_from_techname(techname):
     """
-    This function searches for a dictionary in the 'config' module that contains 
+    This function searches for a dictionary in the 'config' module that contains
     'product_name' with a specified value and returns it.
 
     Parameters:
-    techname (str): The value of 'product_name' to search for. 
+    techname (str): The value of 'product_name' to search for.
                     For example, 'ch.swisstopo.swisseo_s2-sr_v100'.
 
     Returns:
-    dict: The dictionary that contains 'product_name' with the value of 'techname'. 
+    dict: The dictionary that contains 'product_name' with the value of 'techname'.
           If no such dictionary is found, it returns None.
     """
 
@@ -172,28 +256,30 @@ def get_collection_info(collection):
 
     Returns:
         A tuple containing the first date, last date, and total number of images in the collection.
+        Returns (None, None, 0) for empty collections.
     """
     # Sort the collection by date in ascending order
+
     sorted_collection = collection.sort('system:time_start')
 
     # Get the first and last image from the sorted collection
     first_image = sorted_collection.first()
     last_image = sorted_collection.sort('system:time_start', False).first()
 
-    # Get the dates of the first and last image
-    first_date = ee.Date(first_image.get('system:time_start')
-                         ).format('YYYY-MM-dd').getInfo()
-    last_date = ee.Date(last_image.get('system:time_start')
-                        ).format('YYYY-MM-dd').getInfo()
-
-    # Get the count of images in the filtered collection
-    image_count = collection.size()
-
-    # Get the scenes count
-    total_scenes = image_count.getInfo()
+    try:
+        # Get the count of images in the collection
+        image_count = collection.size().getInfo()
+        # Get the dates of the first and last image
+        first_date = ee.Date(first_image.get('system:time_start')).format('YYYY-MM-dd').getInfo()
+        last_date = ee.Date(last_image.get('system:time_start')).format('YYYY-MM-dd').getInfo()
+    except ee.EEException:
+        image_count = 0
+        # Handle cases where date information might be missing
+        first_date = None
+        last_date = None
 
     # Return the first date, last date, and total number of scenes
-    return first_date, last_date, total_scenes
+    return first_date, last_date, image_count
 
 
 def get_quadrants(roi):
@@ -367,13 +453,13 @@ def check_product_update(product_name, date_string):
     bool: True if date_String has a newer Date than "LastSceneDate" stored in the product,
     True if the product is not found, False otherwise.
     """
-    target_date = datetime.datetime.strptime(date_string, "%Y-%m-%d").date()
+    target_date = datetime.strptime(date_string, "%Y-%m-%d").date()
 
     with open(config.LAST_PRODUCT_UPDATES, "r", newline="", encoding="utf-8") as f:
         dict_reader = csv.DictReader(f, delimiter=",")
         for row in dict_reader:
             if row["Product"] == product_name:
-                last_scene_date = datetime.datetime.strptime(
+                last_scene_date = datetime.strptime(
                     row["LastSceneDate"], "%Y-%m-%d").date()
                 return last_scene_date < target_date
     return True
@@ -440,7 +526,7 @@ def prepare_export(roi, productitem, productasset, productname, scale, image, se
 
     Args:
         roi (ee.Geometry): Region of interest for the export.
-        productitem (str): Timestamp of assets YYYYMMDThhmmss, "YYYYMMDDT235959" for a day 
+        productitem (str): Timestamp of assets YYYYMMDThhmmss, "YYYYMMDDT235959" for a day
         productasset (str): Base filename for the exported files.
         productname (str): Product name of the exported files.
         scale (str): Scalenumber in [m] of the exported file
@@ -507,3 +593,28 @@ def prepare_export(roi, productitem, productasset, productname, scale, image, se
         json.dump(image_info_gee, json_file)
 
     return None
+
+
+def get_collection_info_landsat(collection):
+    """
+    Retrieves information about an image collection for the line of Landsat satellites
+
+    Args:
+        collection: The landsat image collection to retrieve information from.
+
+    Returns:
+        A tuple containing the first date, last date, and total number of images in the collection.
+        Returns (None, None, 0) for empty collections.
+    """
+    # Sort the collection by date in ascending order
+    index_list = collection.aggregate_array('system:index')
+
+    dates_list = [dateutil.parser.parse(i.split('_')[-1]) for i in index_list.getInfo()]
+
+    # Get the first and last image and size of image collection
+    image_count = len(dates_list) if len(dates_list)>0 else 0
+    first_date = min(dates_list) if image_count>0 else None
+    last_date = max(dates_list) if image_count>0 else None
+
+    # Return the first date, last date, and total number of scenes
+    return first_date, last_date, image_count

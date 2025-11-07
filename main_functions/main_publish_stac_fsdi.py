@@ -1,7 +1,7 @@
 import os
 import hashlib
 from base64 import b64encode
-from urllib.parse import urlparse
+#from urllib.parse import urlparse
 import requests
 import multihash
 from hashlib import md5
@@ -14,6 +14,8 @@ import pyproj
 import re
 import time
 import configuration as config
+from main_functions import main_multipart_upload_via_api
+
 
 """
 This script is used to publish geospatial data to the Swiss Federal Spatial Data Infrastructure (FSDI) using the SpatioTemporal Asset Catalog (STAC) API.
@@ -166,9 +168,12 @@ def item_create_json_payload(id, coordinates, dt_iso8601, title, geocat_id, curr
     if current is not None:
         product = id
     else:
-        # Define a regex pattern to match the date and 't'
-        pattern = r'_\d{4}-\d{2}-\d{2}t\d{6}$'
-        product = re.sub(pattern, '', title)
+        # Define regex patterns to match the date and 't'
+        iso_pattern = r'_\d{4}-\d{2}-\d{2}t\d{6}$'
+    
+        # Try to remove ISO format first
+        product = re.sub(iso_pattern, '', title)
+    
     thumbnail_url = (domain+"ch.swisstopo."+product+"/" +
                      id+"/thumbnail.jpg")
 
@@ -265,6 +270,10 @@ def asset_create_title(asset, current):
             # Regular expression to match the ISO 8601 date format
             match = re.search(r'\d{4}-\d{2}-\d{2}t\d{6}', asset)
 
+        if match is None:
+            # No date pattern found - this shouldn't happen with your expected formats
+            raise ValueError(f"No recognized date pattern found in asset name: {asset}")
+        
         # Find the position of the first underscore after the date
         underscore_pos = asset.find('_', match.end())
 
@@ -293,7 +302,8 @@ def asset_create_json_payload(id, asset_type, current):
     """
     Creates a JSON payload for a STAC asset.
 
-    This function creates a dictionary with the provided arguments and additional static data. The dictionary can be used as a JSON payload in a request to create a STAC asset.
+    This function creates a dictionary with the provided arguments and additional static data.
+    The dictionary can be used as a JSON payload in a request to create a STAC asset.
     JSON TIF and CSV type supported
 
     Args:
@@ -410,153 +420,6 @@ def create_asset(stac_asset_url, payload):
     return True
 
 
-def upload_asset_multipart(stac_asset_filename, stac_asset_url, part_size=part_size_mb * 1024 ** 2):
-    """
-    Uploads a STAC asset in multiple parts.
-
-    This function prepares a multipart upload by calculating the SHA256 and MD5 hashes of the parts of the file at `stac_asset_filename`. It then creates a multipart upload, uploads the parts using the presigned URLs, and completes the upload. If any step fails, it returns False. Otherwise, it returns True.
-
-    Args:
-        stac_asset_filename (str): The filename of the STAC asset to upload.
-        stac_asset_url (str): The URL where the STAC asset should be uploaded.
-        part_size (int, optional): The size of each part in bytes. Defaults to `part_size_mb * 1024 ** 2`.
-
-    Returns:
-        bool: True if the upload was successful, False otherwise.
-    """
-    # 1. Prepare multipart upload
-    sha256 = hashlib.sha256()
-    md5_parts = []
-    with open(stac_asset_filename, "rb") as fd:
-        while True:
-            data = fd.read(part_size)
-            if data in (b"", ""):
-                break
-            sha256.update(data)
-            md5_parts.append({"part_number": len(
-                md5_parts) + 1, "md5": b64encode(md5(data).digest()).decode("utf-8")})
-    checksum_multihash = multihash.to_hex_string(
-        multihash.encode(sha256.digest(), "sha2-256"))
-
-    # 2. Create a multipart upload
-
-    response = requests.post(
-        url=stac_asset_url + "/uploads",
-        auth=(user, password),
-        # auth=HTTPBasicAuth(user, password),
-        # proxies={"https": proxy.guess_proxy()},
-        # verify=False,
-        json={"number_parts": len(
-            md5_parts), "md5_parts": md5_parts, "checksum:multihash": checksum_multihash, "update_interval": 30}
-    )
-    if response.status_code // 200 == 1:
-        upload_id = response.json()["upload_id"]
-        urls = response.json()["urls"]
-    else:
-        return False
-
-    # 3. Upload the part using the presigned url
-    parts = []
-    with open(stac_asset_filename, "rb") as fd:
-        for url in urls:
-            data = fd.read(part_size)
-            for attempt in range(attempts):
-                try:
-                    response = requests.put(
-                        url=url["url"],
-                        # proxies={"https": proxy.guess_proxy()},
-                        # verify=False,
-                        data=data,
-                        headers={
-                            "Content-MD5": md5_parts[url["part"] - 1]["md5"]},
-                        timeout=part_size_mb * 2
-                    )
-                    if response.status_code // 200 == 1:
-                        parts.append(
-                            {"etag": response.headers["ETag"], "part_number": url["part"]})
-                        print(
-                            f'Part {url["part"]}/{len(urls)} of File {os.path.basename(stac_asset_filename)} uploaded after attempt {attempt + 1}')
-                        break
-                    elif attempt == attempts - 1:
-                        return False
-                except Exception as e:
-                    print(e)
-
-    # 4. Complete the upload
-    response = requests.post(
-        url=stac_asset_url + f"/uploads/{upload_id}/complete",
-        # proxies={"https": proxy.guess_proxy()},
-        # verify=False,
-        auth=(user, password),
-        json={"parts": parts}
-    )
-    if response.status_code // 200 == 1:
-        return True
-    else:
-        return False
-
-
-def upload_asset(stac_asset_filename, stac_asset_url):
-    """
-    Uploads a STAC asset.
-
-    This function prepares a singlepart upload by calculating the SHA256 and MD5 hashes of the file at `stac_asset_filename`. It then creates a singlepart upload, uploads the part using the presigned URL, and completes the upload. If any step fails, it returns False. Otherwise, it returns True.
-
-    Args:
-        stac_asset_filename (str): The filename of the STAC asset to upload.
-        stac_asset_url (str): The URL where the STAC asset should be uploaded.
-
-    Returns:
-        bool: True if the upload was successful, False otherwise.
-    """
-    # 1. Prepare singlepart upload
-    with open(stac_asset_filename, 'rb') as fd:
-        data = fd.read()
-
-    checksum_multihash = multihash.to_hex_string(
-        multihash.encode(hashlib.sha256(data).digest(), 'sha2-256'))
-    md5 = b64encode(hashlib.md5(data).digest()).decode('utf-8')
-
-    # 2a. Create a singlepart upload
-    ip_response = requests.get("https://api64.ipify.org?format=json")
-    ip_address = ip_response.json()["ip"]
-    print(f"my IP address is: {ip_address}")
-    print(f"stac_asset_url is: {stac_asset_url}")
-    response = requests.post(
-        stac_asset_url + "/uploads",
-        auth=(user, password),
-        json={
-            "number_parts": 1,
-            "md5_parts": [{
-                "part_number": 1,
-                "md5": md5
-            }],
-            "checksum:multihash": checksum_multihash,
-            "update_interval": 30
-        }
-    )
-    upload_id = response.json()['upload_id']
-    print("START *!!!!!!!* 2a. Create a singlepart upload POST")
-    print(response.json())
-    print(" END *!!!!!!!* 2a. Create a singlepart upload POST")
-
-    # 2b. Upload the part using the presigned url
-    response = requests.put(
-        response.json()['urls'][0]['url'], data=data, headers={'Content-MD5': md5})
-    etag = response.headers['ETag']
-
-    # 3. Complete the upload
-    response = requests.post(
-        f"{stac_asset_url}/uploads/{upload_id}/complete",
-        auth=(user, password),
-        json={'parts': [{'etag': etag, 'part_number': 1}]}
-    )
-
-    if response.status_code // 200 == 1:
-        return True
-    else:
-        return False
-
 
 def publish_to_stac(raw_asset, raw_item, collection, geocat_id, current=None):
     """
@@ -566,7 +429,7 @@ def publish_to_stac(raw_asset, raw_item, collection, geocat_id, current=None):
 
     Args:
         raw_asset (str): The filename of the raw asset to publish.
-        raw_item (str): The raw item associated with the asset.
+        raw_item (str): The raw item (name) associated with the asset.
         collection (str): The collection to which the asset belongs.
         geocat_id (str): The Geocat ID of the asset.
         current (str): If not None, indicates the 'current' substring should be used to determine the title.
@@ -585,6 +448,9 @@ def publish_to_stac(raw_asset, raw_item, collection, geocat_id, current=None):
     asset = raw_asset.lower()
     os.rename(raw_asset, asset)
 
+    if not collection.startswith('ch.swisstopo.'):
+        collection = 'ch.swisstopo.' + collection
+        
     if current is not None:
         item_title = collection.replace('ch.swisstopo.', '')
         item = item_title
@@ -684,15 +550,14 @@ def publish_to_stac(raw_asset, raw_item, collection, geocat_id, current=None):
     if not create_asset(stac_path+asset_path, payload):
         print(f"ASSET object {asset}: creation FAILED")
 
+    # Define environment
+    env = "int" if ".int." in config.STAC_FSDI_HOSTNAME else "prod"
+
     # Upload ASSET
-    if asset_type == 'TIF':
-        print("TIF asset - Multipart upload")
-        if not upload_asset_multipart(asset, stac_path+asset_path):
-            print(f"ASSET object {asset}: upload FAILED")
-    else:
-        print(asset_type+" Non TIF asset  part upload")
-        if not upload_asset(asset, stac_path+asset_path):
-            print(f"ASSET object {asset}: upload FAILED")
+    if not main_multipart_upload_via_api.multipart_upload(env, collection, item, asset, asset, user, password, force=True,verbose=False):
+        print(f"ASSET object {asset}: upload FAILED")
+
+
     print("FSDI update done: " +
           f"{config.STAC_FSDI_SCHEME}://{config.STAC_FSDI_HOSTNAME}/{collection}/{item}/{asset}")
 
