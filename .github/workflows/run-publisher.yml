@@ -94,22 +94,16 @@ jobs:
     #    RCONF_SECRET: ${{ secrets.RCONF_SECRET }}
       
     - name: Push tools files to repo
-      uses: stefanzweifel/git-auto-commit-action@v6
-      with:
-        branch: 'main'
-        commit_message: 'Tools files done'
-        add_options: '--force'
-        file_pattern: 'tools/'
-        commit_user_name: autoupdate
-
+      run: |
+        git config user.name "autoupdate"
+        git config user.email "david.oesch@gmail.com"
+        git add --force tools/
+        git diff --staged --quiet || git commit -m 'Tools files done' && git push origin main
+  
     - name: Push processing files to repo
-      uses: stefanzweifel/git-auto-commit-action@v6
-      with:
-        branch: 'main'
-        commit_message: 'Processing files done'
-        add_options: '--force'
-        file_pattern: 'processing/'
-        commit_user_name: autoupdate
+      run: |
+        git add --force processing/
+        git diff --staged --quiet || git commit -m 'Processing files done' && git push origin main
 
     #- name: Invalidate CloudFront of satromoint
     #  uses: chetan/invalidate-cloudfront-action@v2
