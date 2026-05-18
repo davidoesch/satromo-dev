@@ -95,8 +95,8 @@ jobs:
       
     - name: Push tools files to repo
       run: |
-        git config user.name "autoupdate"
-        git config user.email "david.oesch@gmail.com"
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
         git add --force tools/
         git diff --staged --quiet || git commit -m 'Tools files done' && git push origin main
   
