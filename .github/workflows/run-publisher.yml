@@ -61,8 +61,7 @@ jobs:
     #    sudo apt-get install libgdal-dev
     
     - name: install gdal
-      run: |
-												 
+      run: |					 
         sudo apt-get update
         sudo apt-get install gdal-bin
         sudo apt-get install libgdal-dev
