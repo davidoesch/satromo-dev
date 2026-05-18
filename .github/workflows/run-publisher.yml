@@ -9,7 +9,8 @@ on:
 jobs:
   build:
     # cf. https://docs.github.com/en/github/setting-up-and-managing-billing-and-payments-on-github/about-billing-for-github-actions
-    runs-on: ubuntu-22.04
+    #runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
 
     steps:
     ## Free Disk Sapce: based on https://github.com/marketplace/actions/free-disk-space-ubuntu
@@ -32,14 +33,14 @@ jobs:
 
     
     - name: Checkout the repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
     
     - name: Increase git buffer size
       run: |
         git config --global http.postBuffer 1048576000
     
     - name: Set up Python 3.11.1
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: 3.11.1
     
@@ -52,13 +53,19 @@ jobs:
       run: |
         curl https://rclone.org/install.sh | sudo bash
         
+    #- name: install gdal
+    #  run: |
+    #    sudo add-apt-repository ppa:ubuntugis/ppa
+    #    sudo apt-get update
+    #    sudo apt-get install gdal-bin
+    #    sudo apt-get install libgdal-dev
+    
     - name: install gdal
       run: |
-        sudo add-apt-repository ppa:ubuntugis/ppa
+												 
         sudo apt-get update
         sudo apt-get install gdal-bin
         sudo apt-get install libgdal-dev
-
     #- name: Create rclone config file
     #  run: echo "${{ secrets.RCLONE_CONFIG }}" > rclone.conf
     
@@ -88,7 +95,7 @@ jobs:
     #    RCONF_SECRET: ${{ secrets.RCONF_SECRET }}
       
     - name: Push tools files to repo
-      uses: github-actions-x/commit@v2.9
+      uses: stefanzweifel/git-auto-commit-action@v5
       with:
         push-branch: 'main'
         commit-message: 'Tools files done'
@@ -97,7 +104,7 @@ jobs:
         name: autoupdate
 
     - name: Push processing files to repo
-      uses: github-actions-x/commit@v2.9
+      uses: stefanzweifel/git-auto-commit-action@v5
       with:
         push-branch: 'main'
         commit-message: 'Processing files done'
